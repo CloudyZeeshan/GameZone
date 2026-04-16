@@ -1,0 +1,379 @@
+@import "tailwindcss";
+
+:root {
+  --background: #030712;
+  --foreground: #f3f4f6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7c3aed;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6d28d9;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+/* Game iframe container */
+.game-container {
+  position: relative;
+  width: 100%;
+  height: 80vh;
+  min-height: 600px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.game-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Loading animation */
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: #7c3aed;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* ===== NEW 3D & SCROLL ANIMATIONS ===== */
+
+/* 3D Rotating Card Animation */
+@keyframes rotate3D {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  25% {
+    transform: rotateX(10deg) rotateY(15deg) rotateZ(5deg);
+  }
+  50% {
+    transform: rotateX(0deg) rotateY(30deg) rotateZ(0deg);
+  }
+  75% {
+    transform: rotateX(-10deg) rotateY(15deg) rotateZ(-5deg);
+  }
+  100% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+}
+
+/* Float & Lift Animation */
+@keyframes floatLift {
+  0%, 100% {
+    transform: translateY(0px) rotateZ(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotateZ(2deg);
+  }
+}
+
+/* Glow Pulse Animation */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.3), 0 0 20px rgba(245, 87, 108, 0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.6), 0 0 60px rgba(245, 87, 108, 0.3);
+    transform: scale(1.02);
+  }
+}
+
+/* Spin Orbit Animation */
+@keyframes spinOrbit {
+  0% {
+    transform: rotate(0deg) translateX(50px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(50px) rotate(-360deg);
+  }
+}
+
+/* Gradient Wave Animation */
+@keyframes gradientWave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Shimmer Effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Slide Up Pop Animation */
+@keyframes slideUpPop {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Stagger Animation (used with nth-child) */
+@keyframes staggerFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) rotateX(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
+}
+
+/* 3D Flip Animation */
+@keyframes flip3D {
+  0% {
+    transform: perspective(1000px) rotateY(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: perspective(1000px) rotateY(90deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+/* Bounce Rotate Animation */
+@keyframes bounceRotate {
+  0%, 100% {
+    transform: translateY(0) rotateZ(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotateZ(5deg);
+  }
+  50% {
+    transform: translateY(0) rotateZ(10deg);
+  }
+  75% {
+    transform: translateY(-5px) rotateZ(5deg);
+  }
+}
+
+/* ===== ANIMATION UTILITY CLASSES ===== */
+
+/* Game Card 3D Effect */
+.card-3d-rotate {
+  animation: rotate3D 8s infinite ease-in-out;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Floating & Lifting */
+.card-float {
+  animation: floatLift 4s ease-in-out infinite;
+}
+
+/* Glow Pulse */
+.glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* Spinning Orbit */
+.spin-orbit {
+  animation: spinOrbit 6s linear infinite;
+}
+
+/* Gradient Background Wave */
+.gradient-wave {
+  background: linear-gradient(90deg, #764ba2, #f5576c, #764ba2);
+  background-size: 200% 200%;
+  animation: gradientWave 6s ease infinite;
+}
+
+/* Shimmer Loading Effect */
+.shimmer-effect {
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.3), rgba(255,255,255,0));
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Slide Up with Pop */
+.slide-up-pop {
+  animation: slideUpPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Stagger Effect - use with nth-child */
+.stagger-item {
+  animation: staggerFadeIn 0.6s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.1s; }
+.stagger-item:nth-child(2) { animation-delay: 0.2s; }
+.stagger-item:nth-child(3) { animation-delay: 0.3s; }
+.stagger-item:nth-child(4) { animation-delay: 0.4s; }
+.stagger-item:nth-child(5) { animation-delay: 0.5s; }
+.stagger-item:nth-child(6) { animation-delay: 0.6s; }
+.stagger-item:nth-child(7) { animation-delay: 0.7s; }
+.stagger-item:nth-child(8) { animation-delay: 0.8s; }
+
+/* 3D Flip */
+.flip-3d {
+  animation: flip3D 2s ease-in-out infinite;
+}
+
+/* Bounce & Rotate */
+.bounce-rotate {
+  animation: bounceRotate 2s ease-in-out infinite;
+}
+
+/* Hover Scale with Shadow */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px) scale(1.05) rotateZ(1deg);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.4);
+}
+
+/* Hover 3D Perspective */
+.hover-perspective {
+  transition: transform 0.3s ease-out;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.hover-perspective:hover {
+  transform: rotateX(5deg) rotateY(5deg) scale(1.03);
+}
+
+/* Hero world and orbit styles */
+.hero-world {
+  animation: rotate3D 22s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.planet-core {
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+.orbiter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.orbiter:hover {
+  transform: scale(1.1);
+}
+
+.orbit-ring {
+  box-shadow: inset 0 0 40px rgba(255,255,255,0.12);
+}
+
+/* Scroll Animation - cards appear as you scroll */
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-animate {
+    opacity: 0;
+    transform: translateY(40px);
+    animation: slideUpPop 0.8s ease-out forwards;
+  }
+}

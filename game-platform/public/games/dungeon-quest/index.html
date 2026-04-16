@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dungeon Quest - Level Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #1a0033, #330066, #0d0033);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+  }
+  #game-container {
+    position: relative;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.1);
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .stat-box {
+    color: #fff;
+    font-size: 16px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+  .stat-box span { color: #ff6b6b; font-weight: bold; }
+  .stat-box .level { color: #ffd93d; }
+  .stat-box .lives { color: #6bcb77; }
+  .stat-box .score { color: #4d96ff; }
+  canvas {
+    display: block;
+    background: linear-gradient(180deg, #2d1b4e 0%, #1a0a2e 100%);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
+  }
+  .overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h1 {
+    font-size: 48px;
+    background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcb77);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient 3s ease infinite;
+    margin-bottom: 15px;
+  }
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .overlay h2 {
+    font-size: 36px;
+    color: #ffd93d;
+    margin-bottom: 10px;
+  }
+  .overlay p {
+    color: #b8b8d4;
+    font-size: 18px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    margin-top: 15px;
+  }
+  .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+  }
+  .level-complete {
+    color: #6bcb77;
+    font-size: 28px;
+    margin: 15px 0;
+    font-weight: bold;
+  }
+  .controls-info {
+    color: #888;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div class="header">
+    <div class="stat-box">Level: <span class="level" id="level">1</span></div>
+    <div class="stat-box">Lives: <span class="lives" id="lives">3</span></div>
+    <div class="stat-box">Score: <span class="score" id="score">0</span></div>
+    <div class="stat-box">High: <span id="highScore">0</span></div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="overlay" id="startScreen">
+    <h1>⚔️ DUNGEON QUEST</h1>
+    <p>Defeat enemies, collect keys, reach the portal!</p>
+    <p class="controls-info">Arrow keys or WASD to move | Touch: Swipe</p>
+    <button class="btn" id="startBtn">START QUEST</button>
+  </div>
+
+  <div class="overlay hidden" id="levelCompleteScreen">
+    <h2>✨ LEVEL COMPLETE!</h2>
+    <div class="level-complete">Score: <span id="levelScore">0</span></div>
+    <p>Get ready for Level <span id="nextLevel">2</span></p>
+    <button class="btn" id="nextLevelBtn">NEXT LEVEL</button>
+  </div>
+
+  <div class="overlay hidden" id="gameOverScreen">
+    <h1>💀 GAME OVER</h1>
+    <div class="level-complete">Final Score: <span id="finalScore">0</span></div>
+    <p>Reached Level <span id="finalLevel">1</span></p>
+    <button class="btn" id="restartBtn">TRY AGAIN</button>
+  </div>
+</div>
+
+<script src="game-controls.js"></script>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = Math.min(600, window.innerWidth - 60);
+const H = Math.min(700, window.innerHeight - 150);
+canvas.width = W;
+canvas.height = H;
+
+const levelEl = document.getElementById('level');
+const livesEl = document.getElementById('lives');
+const scoreEl = document.getElementById('score');
+const highScoreEl = document.getElementById('highScore');
+const startScreen = document.getElementById('startScreen');
+const levelCompleteScreen = document.getElementById('levelCompleteScreen');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const levelScoreEl = document.getElementById('levelScore');
+const nextLevelEl = document.getElementById('nextLevel');
+const finalScoreEl = document.getElementById('finalScore');
+const finalLevelEl = document.getElementById('finalLevel');
+
+let highScore = parseInt(localStorage.getItem('dungeonQuestHighScore')) || 0;
+highScoreEl.textContent = highScore;
+
+// Game state
+let player, enemies, keys, portal, particles, walls;
+let currentLevel, lives, score, gameRunning, animationId;
+let keys_collected = 0;
+let keys_obj = [];
+let gamePaused = false;
+
+// Level configurations
+const LEVELS = [
+  {
+    level: 1,
+    enemyCount: 3,
+    enemySpeed: 1.5,
+    wallCount: 5,
+    keyCount: 1
+  },
+  {
+    level: 2,
+    enemyCount: 5,
+    enemySpeed: 2,
+    wallCount: 8,
+    keyCount: 2
+  },
+  {
+    level: 3,
+    enemyCount: 7,
+    enemySpeed: 2.5,
+    wallCount: 10,
+    keyCount: 2
+  },
+  {
+    level: 4,
+    enemyCount: 9,
+    enemySpeed: 3,
+    wallCount: 12,
+    keyCount: 3
+  },
+  {
+    level: 5,
+    enemyCount: 12,
+    enemySpeed: 3.5,
+    wallCount: 15,
+    keyCount: 3
+  }
+];
+
+function init(level = 1) {
+  currentLevel = level;
+  lives = 3;
+  score = 0;
+  keys_collected = 0;
+
+  player = {
+    x: 50,
+    y: 50,
+    width: 40,
+    height: 40,
+    speed: 5,
+    color: '#00ccff'
+  };
+
+  enemies = [];
+  keys_obj = [];
+  portal = null;
+  particles = [];
+  walls = [];
+
+  const config = LEVELS[Math.min(level - 1, LEVELS.length - 1)];
+
+  // Generate walls
+  for (let i = 0; i < config.wallCount; i++) {
+    walls.push({
+      x: Math.random() * (W - 100) + 50,
+      y: Math.random() * (H - 150) + 100,
+      width: Math.random() * 80 + 40,
+      height: Math.random() * 20 + 20
+    });
+  }
+
+  // Generate enemies
+  for (let i = 0; i < config.enemyCount; i++) {
+    enemies.push({
+      x: Math.random() * (W - 100) + 100,
+      y: Math.random() * (H - 200) + 150,
+      width: 35,
+      height: 35,
+      dx: (Math.random() - 0.5) * config.enemySpeed * 2,
+      dy: (Math.random() - 0.5) * config.enemySpeed * 2,
+      color: '#ff6b6b'
+    });
+  }
+
+  // Generate keys
+  for (let i = 0; i < config.keyCount; i++) {
+    keys_obj.push({
+      x: Math.random() * (W - 100) + 50,
+      y: Math.random() * (H - 150) + 100,
+      width: 25,
+      height: 25,
+      collected: false
+    });
+  }
+
+  // Portal (goal)
+  portal = {
+    x: W - 70,
+    y: H - 70,
+    width: 50,
+    height: 50,
+    active: false
+  };
+
+  levelEl.textContent = currentLevel;
+  livesEl.textContent = lives;
+  scoreEl.textContent = score;
+}
+
+function drawPlayer() {
+  ctx.save();
+  ctx.fillStyle = player.color;
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = player.color;
+  ctx.beginPath();
+  ctx.arc(player.x + player.width / 2, player.y + player.height / 2, 
+          player.width / 2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Eyes
+  ctx.fillStyle = '#fff';
+  ctx.shadowBlur = 0;
+  ctx.beginPath();
+  ctx.arc(player.x + 12, player.y + 15, 5, 0, Math.PI * 2);
+  ctx.arc(player.x + 28, player.y + 15, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(player.x + 13, player.y + 15, 2, 0, Math.PI * 2);
+  ctx.arc(player.x + 29, player.y + 15, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawEnemies() {
+  enemies.forEach(enemy => {
+    ctx.save();
+    ctx.fillStyle = enemy.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    
+    // Angry eyes
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(enemy.x + 10, enemy.y + 12, 4, 0, Math.PI * 2);
+    ctx.arc(enemy.x + 25, enemy.y + 12, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(enemy.x + 10, enemy.y + 12, 2, 0, Math.PI * 2);
+    ctx.arc(enemy.x + 25, enemy.y + 12, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawKeys() {
+  keys_obj.forEach(key => {
+    if (key.collected) return;
+    ctx.save();
+    ctx.fillStyle = '#ffd93d';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ffd93d';
+    ctx.beginPath();
+    ctx.arc(key.x + key.width / 2, key.y + key.height / 2, key.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔑', key.x + key.width / 2, key.y + key.height / 2);
+    ctx.restore();
+  });
+}
+
+function drawPortal() {
+  if (!portal) return;
+  ctx.save();
+  if (portal.active) {
+    ctx.fillStyle = '#6bcb77';
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#6bcb77';
+  } else {
+    ctx.fillStyle = '#666';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#666';
+  }
+  ctx.beginPath();
+  ctx.arc(portal.x + portal.width / 2, portal.y + portal.height / 2, 
+          portal.width / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(portal.active ? '🌀' : '🔒', 
+               portal.x + portal.width / 2, portal.y + portal.height / 2);
+  ctx.restore();
+}
+
+function drawWalls() {
+  ctx.fillStyle = '#4a4a6a';
+  walls.forEach(wall => {
+    ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+    ctx.strokeStyle = '#6a6a8a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+  });
+}
+
+function createParticles(x, y, color, count = 15) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      dx: (Math.random() - 0.5) * 8,
+      dy: (Math.random() - 0.5) * 8,
+      r: Math.random() * 4 + 2,
+      color,
+      life: 1
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.dx;
+    p.y += p.dy;
+    p.life -= 0.02;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function checkCollision(rect1, rect2) {
+  return (
+    rect1.x < rect2.x + rect2.width &&
+    rect1.x + rect1.width > rect2.x &&
+    rect1.y < rect2.y + rect2.height &&
+    rect1.y + rect1.height > rect2.y
+  );
+}
+
+function checkWallCollision(player, walls) {
+  for (let wall of walls) {
+    if (checkCollision(player, wall)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function update() {
+  if (gamePaused) return;
+
+  // Move enemies
+  enemies.forEach(enemy => {
+    enemy.x += enemy.dx;
+    enemy.y += enemy.dy;
+
+    // Bounce off walls
+    if (checkWallCollision(enemy, walls)) {
+      enemy.dx *= -1;
+      enemy.dy *= -1;
+      enemy.x += enemy.dx * 2;
+      enemy.y += enemy.dy * 2;
+    }
+
+    // Bounce off edges
+    if (enemy.x < 0 || enemy.x + enemy.width > W) enemy.dx *= -1;
+    if (enemy.y < 0 || enemy.y + enemy.height > H) enemy.dy *= -1;
+
+    // Check collision with player
+    if (checkCollision(player, enemy)) {
+      lives--;
+      livesEl.textContent = lives;
+      createParticles(player.x, player.y, '#ff6b6b', 20);
+      
+      if (lives <= 0) {
+        gameOver();
+        return;
+      }
+      
+      // Reset player position
+      player.x = 50;
+      player.y = 50;
+    }
+  });
+
+  // Check key collection
+  keys_obj.forEach(key => {
+    if (!key.collected && checkCollision(player, key)) {
+      key.collected = true;
+      keys_collected++;
+      score += 100;
+      scoreEl.textContent = score;
+      createParticles(key.x, key.y, '#ffd93d', 15);
+
+      // Check if all keys collected
+      if (keys_collected >= keys_obj.length) {
+        portal.active = true;
+      }
+    }
+  });
+
+  // Check portal
+  if (portal && portal.active && checkCollision(player, portal)) {
+    levelComplete();
+    return;
+  }
+
+  updateParticles();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  
+  // Background
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, '#2d1b4e');
+  gradient.addColorStop(1, '#1a0a2e');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  drawWalls();
+  drawKeys();
+  drawPortal();
+  drawEnemies();
+  drawPlayer();
+  drawParticles();
+}
+
+function gameLoop() {
+  if (!gameRunning) return;
+  
+  if (!window.isGamePaused?.()) {
+    update();
+  }
+  draw();
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+function levelComplete() {
+  gameRunning = false;
+  score += 500 * currentLevel;
+  
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('dungeonQuestHighScore', highScore);
+    highScoreEl.textContent = highScore;
+  }
+
+  levelScoreEl.textContent = score;
+  nextLevelEl.textContent = currentLevel + 1;
+  levelCompleteScreen.classList.remove('hidden');
+
+  window.parent.postMessage({ type: 'gameOver', score, highScore }, '*');
+}
+
+function gameOver() {
+  gameRunning = false;
+
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('dungeonQuestHighScore', highScore);
+    highScoreEl.textContent = highScore;
+  }
+
+  finalScoreEl.textContent = score;
+  finalLevelEl.textContent = currentLevel;
+  gameOverScreen.classList.remove('hidden');
+
+  window.parent.postMessage({ type: 'gameOver', score, highScore }, '*');
+}
+
+// Event listeners
+document.getElementById('startBtn').addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  init(1);
+  gameRunning = true;
+  window.markGameStarted?.();
+  gameLoop();
+});
+
+document.getElementById('nextLevelBtn').addEventListener('click', () => {
+  levelCompleteScreen.classList.add('hidden');
+  init(currentLevel + 1);
+  gameRunning = true;
+  gameLoop();
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  gameOverScreen.classList.add('hidden');
+  init(1);
+  gameRunning = true;
+  gameLoop();
+});
+
+window.addEventListener('game-restart', () => {
+  levelCompleteScreen.classList.add('hidden');
+  gameOverScreen.classList.add('hidden');
+  init(1);
+  gameRunning = true;
+  gameLoop();
+});
+
+let keys_pressed = {};
+document.addEventListener('keydown', e => {
+  keys_pressed[e.key] = true;
+  
+  if (!gameRunning || window.isGamePaused?.()) return;
+
+  let newX = player.x;
+  let newY = player.y;
+
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') newX -= player.speed;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') newX += player.speed;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') newY -= player.speed;
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') newY += player.speed;
+
+  // Check bounds
+  newX = Math.max(0, Math.min(W - player.width, newX));
+  newY = Math.max(0, Math.min(H - player.height, newY));
+
+  // Check wall collision
+  const testPlayer = { x: newX, y: newY, width: player.width, height: player.height };
+  if (!checkWallCollision(testPlayer, walls)) {
+    player.x = newX;
+    player.y = newY;
+  }
+
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('keyup', e => {
+  keys_pressed[e.key] = false;
+});
+
+// Touch controls
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!gameRunning || window.isGamePaused?.()) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.touches[0].clientX - rect.left;
+  const y = e.touches[0].clientY - rect.top;
+
+  const newX = (x / rect.width) * W - player.width / 2;
+  const newY = (y / rect.height) * H - player.height / 2;
+
+  const clampedX = Math.max(0, Math.min(W - player.width, newX));
+  const clampedY = Math.max(0, Math.min(H - player.height, newY));
+
+  const testPlayer = { x: clampedX, y: clampedY, width: player.width, height: player.height };
+  if (!checkWallCollision(testPlayer, walls)) {
+    player.x = clampedX;
+    player.y = clampedY;
+  }
+}, { passive: false });
+
+// Initialize
+init(1);
+draw();
+</script>
+</body>
+</html>

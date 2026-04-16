@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ping Pong - 2 Player Mode</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #1a0033, #2d0050, #0d0033);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+  }
+  #game-container {
+    position: relative;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 0 40px rgba(77, 150, 255, 0.3), inset 0 0 20px rgba(77, 150, 255, 0.1);
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 10px;
+  }
+  .score-display {
+    color: #fff;
+    font-size: 24px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    display: flex;
+    gap: 30px;
+  }
+  .score-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .player1-color { color: #4d96ff; }
+  .player2-color { color: #ff6b6b; }
+  .high-score { color: #ffd93d; font-size: 18px; }
+  canvas {
+    display: block;
+    background: linear-gradient(180deg, #0a0a1e 0%, #150a2a 100%);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(77, 150, 255, 0.4);
+  }
+  .overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h1 {
+    font-size: 48px;
+    background: linear-gradient(45deg, #4d96ff, #6bcb77, #ffd93d);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient 3s ease infinite;
+    margin-bottom: 15px;
+  }
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .mode-selector {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+  }
+  .btn {
+    background: linear-gradient(135deg, #4d96ff, #6bcb77);
+    color: white;
+    border: none;
+    padding: 15px 35px;
+    font-size: 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(77, 150, 255, 0.4);
+    min-width: 180px;
+  }
+  .btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(77, 150, 255, 0.6);
+  }
+  .btn-secondary {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  }
+  .overlay p {
+    color: #b8b8d4;
+    font-size: 18px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .controls-info {
+    color: #888;
+    font-size: 14px;
+    margin-top: 15px;
+    text-align: center;
+  }
+  .controls-info p { margin: 5px 0; }
+  .final-score {
+    color: #4d96ff;
+    font-size: 32px;
+    margin: 20px 0;
+    font-weight: bold;
+  }
+  .winner-text {
+    font-size: 24px;
+    margin-bottom: 15px;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div class="header">
+    <div class="score-display">
+      <div class="score-box">
+        <span class="player1-color">●</span>
+        <span>P1: <span id="player1Score" class="player1-color">0</span></span>
+      </div>
+      <div class="score-box">
+        <span class="player2-color">●</span>
+        <span>P2: <span id="player2Score" class="player2-color">0</span></span>
+      </div>
+    </div>
+    <div class="high-score">First to <span id="winScore">10</span> wins!</div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="overlay" id="start-screen">
+    <h1>🏓 PING PONG</h1>
+    <p>Choose Game Mode</p>
+    <div class="mode-selector">
+      <button class="btn" id="btn-2player">👥 2 Players</button>
+      <button class="btn btn-secondary" id="btn-ai">🤖 vs AI</button>
+    </div>
+    <div class="controls-info">
+      <p><strong class="player1-color">Player 1 (Left):</strong> W / S keys</p>
+      <p><strong class="player2-color">Player 2 (Right):</strong> ↑ / ↓ arrows</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="gameover-screen">
+    <h1 id="winner-text" class="winner-text">PLAYER 1 WINS!</h1>
+    <div class="final-score">
+      <span class="player1-color" id="final-p1">0</span> - 
+      <span class="player2-color" id="final-p2">0</span>
+    </div>
+    <button class="btn" id="btn-restart">🔄 PLAY AGAIN</button>
+    <button class="btn btn-secondary" id="btn-home">🏠 HOME</button>
+  </div>
+</div>
+
+<script src="/games/game-controls.js"></script>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = Math.min(800, window.innerWidth - 60);
+const H = Math.min(600, window.innerHeight - 150);
+canvas.width = W;
+canvas.height = H;
+
+// UI Elements
+const player1ScoreEl = document.getElementById('player1Score');
+const player2ScoreEl = document.getElementById('player2Score');
+const startScreen = document.getElementById('start-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const winnerText = document.getElementById('winner-text');
+const finalP1 = document.getElementById('final-p1');
+const finalP2 = document.getElementById('final-p2');
+
+// Game Config
+const PADDLE_W = 15, PADDLE_H = 100, BALL_R = 10, WIN_SCORE = 10;
+const PADDLE_SPEED = 8;
+
+// Game State
+let gameMode = '2player'; // '2player' or 'ai'
+let gameRunning = false;
+let animationId;
+
+// Game Objects
+let paddle1, paddle2, ball, particles, trail;
+let keys = {};
+
+// Audio System
+const AudioSystem = {
+  ctx: null,
+  init() {
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  },
+  play(freq, duration, type = 'square') {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.type = type;
+    const now = this.ctx.currentTime;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+};
+
+function init() {
+  paddle1 = { x: 20, y: H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H };
+  paddle2 = { x: W - 20 - PADDLE_W, y: H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H };
+  ball = { x: W / 2, y: H / 2, dx: 6, dy: 4, r: BALL_R, speed: 6 };
+  particles = [];
+  trail = [];
+  player1ScoreEl.textContent = '0';
+  player2ScoreEl.textContent = '0';
+}
+
+function resetBall(direction) {
+  ball.x = W / 2;
+  ball.y = H / 2;
+  ball.speed = 6;
+  const angle = (Math.random() - 0.5) * Math.PI / 3;
+  ball.dx = ball.speed * Math.cos(angle) * direction;
+  ball.dy = ball.speed * Math.sin(angle);
+}
+
+function createParticles(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      dx: (Math.random() - 0.5) * 8,
+      dy: (Math.random() - 0.5) * 8,
+      r: Math.random() * 4 + 2,
+      color,
+      life: 1
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.dx;
+    p.y += p.dy;
+    p.life -= 0.03;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawField() {
+  // Center line
+  ctx.setLineDash([12, 12]);
+  ctx.strokeStyle = 'rgba(77, 150, 255, 0.3)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Center circle
+  ctx.fillStyle = 'rgba(77, 150, 255, 0.1)';
+  ctx.beginPath();
+  ctx.arc(W / 2, H / 2, 60, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(77, 150, 255, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawPaddle(paddle, color) {
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = color;
+  ctx.beginPath();
+  ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 8);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawBall() {
+  // Trail
+  trail.push({ x: ball.x, y: ball.y, life: 12 });
+  if (trail.length > 20) trail.shift();
+
+  trail.forEach((t, i) => {
+    t.life--;
+    if (t.life > 0) {
+      ctx.save();
+      ctx.globalAlpha = t.life / 12 * 0.4;
+      ctx.fillStyle = '#4d96ff';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, ball.r * (t.life / 12), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+  trail = trail.filter(t => t.life > 0);
+
+  // Ball
+  ctx.fillStyle = '#fff';
+  ctx.shadowBlur = 25;
+  ctx.shadowColor = '#4d96ff';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function updatePaddies() {
+  // Player 1 controls (W/S)
+  if (keys['KeyW'] || keys['w']) {
+    paddle1.y -= PADDLE_SPEED;
+  }
+  if (keys['KeyS'] || keys['s']) {
+    paddle1.y += PADDLE_SPEED;
+  }
+
+  // Player 2 controls (Arrow Up/Down) or AI
+  if (gameMode === '2player') {
+    if (keys['ArrowUp']) {
+      paddle2.y -= PADDLE_SPEED;
+    }
+    if (keys['ArrowDown']) {
+      paddle2.y += PADDLE_SPEED;
+    }
+  } else {
+    // AI Logic
+    const aiTarget = ball.y - paddle2.h / 2;
+    const aiSpeed = 5.5;
+    const deadzone = 15;
+    
+    if (Math.abs(paddle2.y + paddle2.h / 2 - ball.y) > deadzone) {
+      if (paddle2.y + paddle2.h / 2 < ball.y) {
+        paddle2.y += aiSpeed;
+      } else {
+        paddle2.y -= aiSpeed;
+      }
+    }
+  }
+
+  // Clamp paddles
+  paddle1.y = Math.max(0, Math.min(H - paddle1.h, paddle1.y));
+  paddle2.y = Math.max(0, Math.min(H - paddle2.h, paddle2.y));
+}
+
+function updateBall() {
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Top/bottom walls
+  if (ball.y - ball.r < 0 || ball.y + ball.r > H) {
+    ball.dy *= -1;
+    AudioSystem.play(300, 0.1);
+    createParticles(ball.x, ball.y, '#4d96ff', 6);
+  }
+
+  // Paddle 1 collision
+  if (ball.dx < 0 && 
+      ball.x - ball.r <= paddle1.x + paddle1.w &&
+      ball.y >= paddle1.y && 
+      ball.y <= paddle1.y + paddle1.h) {
+    
+    const hitPos = (ball.y - paddle1.y) / paddle1.h;
+    const angle = (hitPos - 0.5) * Math.PI * 0.8;
+    ball.speed = Math.min(ball.speed + 0.4, 14);
+    ball.dx = ball.speed * Math.cos(angle);
+    ball.dy = ball.speed * Math.sin(angle);
+    AudioSystem.play(400, 0.15, 'sine');
+    createParticles(ball.x, ball.y, '#4d96ff', 12);
+  }
+
+  // Paddle 2 collision
+  if (ball.dx > 0 && 
+      ball.x + ball.r >= paddle2.x &&
+      ball.y >= paddle2.y && 
+      ball.y <= paddle2.y + paddle2.h) {
+    
+    const hitPos = (ball.y - paddle2.y) / paddle2.h;
+    const angle = Math.PI - (hitPos - 0.5) * Math.PI * 0.8;
+    ball.speed = Math.min(ball.speed + 0.4, 14);
+    ball.dx = -ball.speed * Math.cos(angle);
+    ball.dy = ball.speed * Math.sin(angle);
+    AudioSystem.play(500, 0.15, 'sine');
+    createParticles(ball.x, ball.y, '#ff6b6b', 12);
+  }
+
+  // Scoring
+  if (ball.x < 0) {
+    player2ScoreEl.textContent = parseInt(player2ScoreEl.textContent) + 1;
+    AudioSystem.play(200, 0.3, 'sawtooth');
+    if (parseInt(player2ScoreEl.textContent) >= WIN_SCORE) {
+      endGame(2);
+      return;
+    }
+    resetBall(1);
+  }
+
+  if (ball.x > W) {
+    player1ScoreEl.textContent = parseInt(player1ScoreEl.textContent) + 1;
+    AudioSystem.play(600, 0.3, 'sine');
+    if (parseInt(player1ScoreEl.textContent) >= WIN_SCORE) {
+      endGame(1);
+      return;
+    }
+    resetBall(-1);
+  }
+
+  updateParticles();
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a1e';
+  ctx.fillRect(0, 0, W, H);
+  drawField();
+  drawPaddle(paddle1, '#4d96ff');
+  drawPaddle(paddle2, '#ff6b6b');
+  drawBall();
+  
+  // Draw particles
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function gameLoop() {
+  if (!gameRunning || window.isGamePaused?.()) {
+    if (gameRunning) animationId = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  updatePaddies();
+  updateBall();
+  draw();
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+function endGame(winner) {
+  gameRunning = false;
+  cancelAnimationFrame(animationId);
+
+  const p1 = parseInt(player1ScoreEl.textContent);
+  const p2 = parseInt(player2ScoreEl.textContent);
+
+  if (gameMode === '2player') {
+    winnerText.textContent = winner === 1 ? '🎉 PLAYER 1 WINS!' : '🎉 PLAYER 2 WINS!';
+  } else {
+    winnerText.textContent = winner === 1 ? '🎉 YOU WIN!' : '🤖 AI WINS!';
+  }
+
+  finalP1.textContent = p1;
+  finalP2.textContent = p2;
+  gameoverScreen.classList.remove('hidden');
+
+  window.parent.postMessage({ type: 'gameOver', score: winner === 1 ? p1 : p2, highScore: Math.max(p1, p2) }, '*');
+}
+
+// ===== EVENT LISTENERS =====
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('keyup', e => {
+  keys[e.code] = false;
+});
+
+document.getElementById('btn-2player').addEventListener('click', () => {
+  AudioSystem.init();
+  gameMode = '2player';
+  startScreen.classList.add('hidden');
+  init();
+  gameRunning = true;
+  window.markGameStarted?.();
+  gameLoop();
+});
+
+document.getElementById('btn-ai').addEventListener('click', () => {
+  AudioSystem.init();
+  gameMode = 'ai';
+  startScreen.classList.add('hidden');
+  init();
+  gameRunning = true;
+  window.markGameStarted?.();
+  gameLoop();
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  gameoverScreen.classList.add('hidden');
+  init();
+  gameRunning = true;
+  gameLoop();
+});
+
+document.getElementById('btn-home').addEventListener('click', () => {
+  if (window.parent) {
+    window.parent.postMessage({ type: 'exitGame' }, '*');
+  } else {
+    window.location.href = '/';
+  }
+});
+
+window.addEventListener('game-restart', () => {
+  gameoverScreen.classList.add('hidden');
+  init();
+  gameRunning = true;
+  gameLoop();
+});
+
+// Initial draw
+init();
+draw();
+</script>
+</body>
+</html>
